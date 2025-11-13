@@ -1,14 +1,14 @@
-setuptools>=41.0.0
-matplotlib>=3.0.3
+matplotlib
 seaborn
-scipy>=1.2.1
-torch>=1.6.0
-numpy>=1.16.2
-gpytorch>=0.3.1
-botorch
-scikit_learn>=0.20.3
-pandas>=1.0
-s3fs>=0.4
+scipy
+numpy
+scikit_learn
+pandas
+s3fs
 tabulate
 hydra-core>=1.0
 xlrd
+torch @ https://download.pytorch.org/whl/cu130/torch-2.9.0%2Bcu130-cp310-cp310-win_amd64.whl#sha256=ec07f6494f5c9925bd2e3d76d05a7d50464ddb6295998084073469f50f9e80ef
+gpytorch~=1.7.0
+botorch
+jupyter

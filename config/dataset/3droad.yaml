@@ -5,6 +5,7 @@ _target_: online_gp.datasets.regression.Road3D
 input_dim: 3
 baseline_rmse: 0.3711
 base_lr: 1e-2
-dataset_dir: /datasets/uci/3droad
+# dataset_dir: /datasets/uci/3droad
+dataset_dir: C:/Users/MBO/Documents/GitHub/online_gp/datasets/uci/3droad
 subsample_ratio: 1.0
 split_seed: 0

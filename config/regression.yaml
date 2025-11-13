@@ -1,8 +1,9 @@
 project_name: online_gp
 project_version: 0.0.13
 defaults:
-  - dataset: skillcraft
-  - stem: linear
+  - _self_
+  - dataset: 3droad
+  - stem: eye
   - model: wiski_gp_regression
   - logger: local
 
@@ -12,7 +13,7 @@ pretrain_stem:
   num_epochs: 200
   batch_size: 256
 
-update_stem: True
+update_stem: False
 pretrain: True
 num_batch_epochs: 200
 batch_size: 1

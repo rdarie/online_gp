@@ -7,6 +7,7 @@ import pandas as pd
 from online_gp.utils.dkl import pretrain_stem
 from gpytorch.settings import *
 from upcycle import cuda
+import ctypes
 
 
 def startup(hydra_cfg):
@@ -25,7 +26,7 @@ def startup(hydra_cfg):
     elif hydra_cfg.dtype == 'float64':
         torch.set_default_dtype(torch.float64)
 
-    print(hydra_cfg.pretty())
+    print(hydra_cfg)
     print(f"GPU available: {torch.cuda.is_available()}")
 
     return hydra_cfg, logger
@@ -46,12 +47,12 @@ def online_regression(batch_model, online_model, train_x, train_y, test_x, test_
     num_chunks = train_x.size(-2) // batch_size
 
     for t, (x, y) in enumerate(zip(train_x.chunk(num_chunks), train_y.chunk(num_chunks))):
-        start_clock = time.time()
         from online_gp.settings import detach_interp_coeff
         with detach_interp_coeff(True):
             o_rmse, o_nll = online_model.evaluate(x, y)
+        start_clock = time.perf_counter()
         stem_loss, gp_loss = online_model.update(x, y, update_stem=update_stem)
-        step_time = time.time() - start_clock
+        step_time = time.perf_counter() - start_clock
 
         with torch.no_grad():
             b_rmse, b_nll = batch_model.evaluate(x, y)
@@ -142,7 +143,38 @@ def regression_trial(config):
     print(online_df.tail(5).to_markdown())
 
 
-@hydra.main(config_path='../config/regression.yaml')
+
+# Load WinMM
+winmm = ctypes.WinDLL("winmm")
+
+
+class TimerResolution:
+    def __init__(self, ms: int = 1):
+        """
+        Context manager for Windows system timer resolution.
+        :param ms: Desired resolution in milliseconds (commonly 1 or 0.5).
+        """
+        self.ms = ms
+        self._active = False
+
+    def __enter__(self):
+        result = winmm.timeBeginPeriod(self.ms)
+        if result != 0:
+            raise OSError(f"timeBeginPeriod failed with code {result}")
+        print('started high precision timer')
+        self._active = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._active:
+            result = winmm.timeEndPeriod(self.ms)
+            if result != 0:
+                raise OSError(f"timeEndPeriod failed with code {result}")
+            print('ended high precision timer')
+            self._active = False
+
+
+@hydra.main(config_path='../config', config_name='regression')
 def main(config):
     with max_root_decomposition_size(config.gpytorch_global_settings.max_root_decomposition_size),\
          max_cholesky_size(config.gpytorch_global_settings.max_cholesky_size),\
@@ -151,4 +183,6 @@ def main(config):
 
 
 if __name__ == '__main__':
-    main()
+    with TimerResolution(1):   # request 1 ms system timer resolution
+        print("Inside context: timer resolution set to 1 ms")
+        main()

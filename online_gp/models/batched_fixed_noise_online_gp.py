@@ -82,7 +82,6 @@ class FixedNoiseOnlineSKIGP(GP):
             num_outputs = train_targets.shape[-1]
             input_batch_shape = train_inputs.shape[:-2]
             self.num_data = train_inputs.shape[-2]
-
         else:
             # pull from kernel_cache
             num_outputs = kernel_cache["response_cache"].shape[-1]

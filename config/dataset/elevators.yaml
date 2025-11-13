@@ -5,6 +5,7 @@ _target_: online_gp.datasets.regression.Elevators
 input_dim: 18
 baseline_rmse: 0.475
 base_lr: 1e-2
-dataset_dir: /datasets/uci/elevators
+# dataset_dir: /datasets/uci/elevators
+dataset_dir: C:/Users/MBO/Documents/GitHub/online_gp/datasets/uci/elevators
 subsample_ratio: 1.0
 split_seed: 0
