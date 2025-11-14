@@ -151,7 +151,6 @@ def regression_trial(config):
     online_regression(
         batch_model, online_model, train_x, train_y, test_x, test_y,
         config.update_stem, config.batch_size, logger, config.logging_freq)
-    # TODO: is it okay to input train_x and train_y here? we're retraining on the 5%
     online_df = pd.DataFrame(logger.data['online_metrics'], index=None)
     print(online_df.tail(5).to_markdown())
 
