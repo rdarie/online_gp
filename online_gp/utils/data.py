@@ -89,3 +89,10 @@ def balance_classes(dataset, num_classes=2):
         balanced_targets[row_perm]
     )
     return balanced_dataset
+
+
+def interpret_stim_xy(electrode_names=None, probe=None):
+    elec_list = [int(x[1:]) for x in electrode_names.split('_')]
+    xy = probe.loc[elec_list, ['topo_x', 'topo_y']]
+    xy = xy.to_numpy().reshape(-1, 1).flatten().tolist()
+    return xy

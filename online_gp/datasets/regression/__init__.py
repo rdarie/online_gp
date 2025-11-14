@@ -5,3 +5,6 @@ from .road_3d import Road3D
 from .protein import Protein
 from .hopper import HopperV2
 from .walker2d import Walker2dV2
+from .nhp_1P import NHP_1P
+from .nhp_2P import NHP_2P
+from .neuromosaics_nhp import Neuromosaics_NHP

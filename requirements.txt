@@ -4,6 +4,8 @@ scipy
 numpy
 scikit_learn
 pandas
+pyarrow
+fastparquet
 s3fs
 tabulate
 hydra-core>=1.0
@@ -12,3 +14,4 @@ torch @ https://download.pytorch.org/whl/cu130/torch-2.9.0%2Bcu130-cp310-cp310-w
 gpytorch~=1.7.0
 botorch
 jupyter
+probeinterface

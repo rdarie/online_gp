@@ -39,8 +39,10 @@ def get_model(config, init_x, init_y, streaming):
     return cuda.try_cuda(model)
 
 
-def online_regression(batch_model, online_model, train_x, train_y, test_x, test_y,
-                      update_stem, batch_size, logger, logging_freq):
+def online_regression(
+        batch_model, online_model, train_x, train_y, test_x, test_y,
+        update_stem, batch_size, logger, logging_freq):
+
     online_rmse = online_nll = 0
     batch_rmse = batch_nll = 0
     logger.add_table('online_metrics')
@@ -50,19 +52,25 @@ def online_regression(batch_model, online_model, train_x, train_y, test_x, test_
         from online_gp.settings import detach_interp_coeff
         with detach_interp_coeff(True):
             o_rmse, o_nll = online_model.evaluate(x, y)
+            # training scores on one chunk (usually 1 sample)
+
         start_clock = time.perf_counter()
         stem_loss, gp_loss = online_model.update(x, y, update_stem=update_stem)
         step_time = time.perf_counter() - start_clock
 
         with torch.no_grad():
             b_rmse, b_nll = batch_model.evaluate(x, y)
+            # evaluate the batch model (which has already seen all of train_x, train_y) on one chunk
         online_rmse += o_rmse
         online_nll += o_nll
         batch_rmse += b_rmse
         batch_nll += b_nll
 
-        regret = online_rmse - batch_rmse
+        # regret = online_rmse - batch_rmse
+        # changed from original for interpretability
+        regret = o_rmse - b_rmse
         num_steps = (t + 1) * batch_size
+
         if t % logging_freq == (logging_freq - 1):
             rmse, nll = online_model.evaluate(test_x, test_y)
             print(f'T: {t+1}, test RMSE: {rmse:0.4f}, test NLL: {nll:0.4f}')
@@ -90,14 +98,14 @@ def regression_trial(config):
     test_x, test_y = datasets.test_dataset[:]
     config.stem.input_dim = config.dataset.input_dim = train_x.size(-1)
 
-
     batch_model = get_model(config, train_x, train_y, streaming=False)
 
     if config.pretrain_stem.enabled:
         print('==== pretraining stem ====')
         loss_fn = torch.nn.MSELoss()
-        batch_pretrain_stem_metrics = pretrain_stem(batch_model.stem, train_x, train_y, loss_fn,
-                                                    **config.pretrain_stem)
+        batch_pretrain_stem_metrics = pretrain_stem(
+            batch_model.stem, train_x, train_y, loss_fn,
+            **config.pretrain_stem)
         logger.add_table('batch_pretrain_stem_metrics', batch_pretrain_stem_metrics)
         logger.write_csv()
         pretrain_df = pd.DataFrame(logger.data['batch_pretrain_stem_metrics'])
@@ -110,6 +118,7 @@ def regression_trial(config):
     logger.write_csv()
     batch_df = pd.DataFrame(logger.data['batch_metrics'], index=None)
     print(batch_df.tail(5).to_markdown())
+    # we train a batch_model on the entire training dataset
 
     num_init_obs = int(config.model.init_ratio * train_x.size(0))
     init_x, train_x = train_x[:num_init_obs], train_x[num_init_obs:]
@@ -120,8 +129,9 @@ def regression_trial(config):
     if config.pretrain_stem.enabled:
         print('==== pretraining stem ====')
         loss_fn = torch.nn.MSELoss()
-        online_pretrain_stem_metrics = pretrain_stem(online_model.stem, init_x, init_y, loss_fn,
-                                                     **config.pretrain_stem)
+        online_pretrain_stem_metrics = pretrain_stem(
+            online_model.stem, init_x, init_y, loss_fn,
+            **config.pretrain_stem)
         logger.add_table('online_pretrain_stem_metrics', online_pretrain_stem_metrics)
         logger.write_csv()
         pretrain_df = pd.DataFrame(logger.data['online_pretrain_stem_metrics'])
@@ -134,14 +144,16 @@ def regression_trial(config):
         logger.add_table('pretrain_metrics', pretrain_metrics)
         logger.write_csv()
         pretrain_df = pd.DataFrame(logger.data['pretrain_metrics'])
+        # then, initially train the online_model on a subset (init_ratio, e.g. 5%) of the training dataset
         print(pretrain_df.tail(5).to_markdown())
 
     online_model.set_lr(gp_lr=config.dataset.base_lr / 10, stem_lr=config.dataset.base_lr / 100)
-    online_regression(batch_model, online_model, train_x, train_y, test_x, test_y,
-                      config.update_stem, config.batch_size, logger, config.logging_freq)
+    online_regression(
+        batch_model, online_model, train_x, train_y, test_x, test_y,
+        config.update_stem, config.batch_size, logger, config.logging_freq)
+    # TODO: is it okay to input train_x and train_y here? we're retraining on the 5%
     online_df = pd.DataFrame(logger.data['online_metrics'], index=None)
     print(online_df.tail(5).to_markdown())
-
 
 
 # Load WinMM
