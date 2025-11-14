@@ -12,16 +12,16 @@ import numpy as np
 class Neuromosaics_NHP(object):
     def __init__(
             self, dataset_dir=None, recordings=None,
-            probe_path=None, target_name=None, target_idx=None,
+            target_name=None, target_idx=None,
             subsample_ratio=1.0, test_ratio=0.1, split_seed=0,
-            shuffle=True, shuffle_seed=42,
+            shuffle=True, shuffle_seed=42, get_ground_truth=True,
             **kwargs):
 
         self.dataset_dir = Path(dataset_dir)
         self.recordings = recordings
-        self.probe_path = probe_path
         self.shuffle = shuffle
         self.shuffle_seed = shuffle_seed
+        self.get_ground_truth = get_ground_truth
 
         self.shuffle_rng = np.random.default_rng(seed=self.shuffle_seed) if self.shuffle else None
 
@@ -34,13 +34,7 @@ class Neuromosaics_NHP(object):
             for rec in recordings
         ]
 
-        # probe_group = read_probeinterface(probe_path)
-        # probe = probe_group.probes[0]
-        # self.probe = probe.to_dataframe()
-        # for key, value in probe.contact_annotations.items():
-        #     self.probe.loc[:, key] = value
-
-        self.train_dataset, self.test_dataset = self._preprocess(
+        self.train_dataset, self.test_dataset, self.ground_truth = self._preprocess(
             subsample_ratio, test_ratio, split_seed)
 
     def _preprocess(self, subsample_ratio, test_ratio, split_seed):
@@ -62,9 +56,16 @@ class Neuromosaics_NHP(object):
             sorted_resp = np.concatenate(all_data[9][:, target_idx])
             sorted_resp = sorted_resp[sorted_isvalid, :]
 
-            # sorted_resp_mean = all_data[10][:, target_idx]
-
             ch2xy = all_data[16]
+
+            if self.get_ground_truth:
+                sorted_resp_mean = all_data[10][:, target_idx]
+                ground_truth = pd.DataFrame(
+                    np.concatenate([ch2xy, sorted_resp_mean.reshape(-1, 1)], axis=1)
+                )
+                ground_truth.columns = ['x', 'y', 'emg']
+            else:
+                ground_truth = None
             stim_loc_list = []
             for e_idx in range(n_chan):
                 num_reps = all_data[9][e_idx, target_idx].shape[0]
@@ -112,4 +113,4 @@ class Neuromosaics_NHP(object):
         train_dataset, test_dataset = random_split(
             dataset, [len(dataset) - num_test, num_test],
             generator=generator)
-        return train_dataset, test_dataset
+        return train_dataset, test_dataset, ground_truth

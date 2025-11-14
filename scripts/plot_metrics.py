@@ -12,12 +12,16 @@ base_dir_2 = Path(r'C:\Users\MBO\Documents\GitHub\online_gp\data\experiments\reg
 
 
 dir_list = [
-    # AdductorPollicis, grid_bound: 1
-    base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_14-57-48",
-    # AdductorPollicis, grid_bound: 0.7
-    base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_15-20-05",
-    # AdductorPollicis,
-    base_dir_1 / r"exact_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_15-26-35"
+    ## # AdductorPollicis, grid_bound: 1
+    ## base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_14-57-48",
+    ## # AdductorPollicis, grid_bound: 0.7
+    ## base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_15-20-05",
+    ## # AdductorPollicis,
+    ## base_dir_1 / r"exact_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_15-26-35",
+    ## # AdductorPollicis, grid_bound: 0.7, update_stem: false
+    ## base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_15-37-36",
+    ## FlexorCarpiUlnaris, grid_bound: 0.7, update_stem: false
+    base_dir_1 / r"wiski_gp_regression-neuromosaics_nhp-0.0.14\trial_0\2025-11-14_16-01-02"
 ]
 
 for results_dir in dir_list:

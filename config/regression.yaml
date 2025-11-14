@@ -15,13 +15,17 @@ pretrain_stem:
   batch_size: 256
 
 update_stem: False
+update_gp: True
+
 pretrain: True
 num_batch_epochs: 200
 batch_size: 1
-logging_freq: 50
+logging_freq: 1
 seed:
 trial_id: 0
 dtype: float32
+
+make_gof_plots: True
 
 gpytorch_global_settings:
   max_root_decomposition_size: 512

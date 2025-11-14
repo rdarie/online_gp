@@ -270,7 +270,6 @@ class FixedNoiseOnlineSKIGP(GP):
             self.num_data = self.num_data+X.shape[-2]
             self._kernel_cache = new_kernel_cache
             self._dump_caches()
-
         else:
             new_gp = type(self)(
                 covar_module=self.covar_module,
@@ -404,8 +403,9 @@ class FixedNoiseOnlineSKIGP(GP):
 
     def _dump_caches(self):
         # this is done in gpytorch.variational.variational_strategy as well
-        fixed_cache_names = ["current_qmatrix", "current_inducing_compression_matrix", "prediction_cache",
-                             "root_space_projection", "Kuu_response", "Kuu"]
+        fixed_cache_names = [
+            "current_qmatrix", "current_inducing_compression_matrix", "prediction_cache",
+            "root_space_projection", "Kuu_response", "Kuu"]
         for name in fixed_cache_names:
             try:
                 pop_from_cache(self, name)
