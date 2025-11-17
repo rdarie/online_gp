@@ -114,9 +114,6 @@ class OnlineSKIRegression(torch.nn.Module):
         inputs = inputs.view(-1, self.stem.input_dim)
         targets = targets.view(-1, self.target_dim)
 
-        stem_loss = self._update_stem(inputs, targets) if update_stem else 0.
-        gp_loss = self._update_gp(inputs, targets) if update_gp else 0.
-
         with torch.no_grad():
             features = self.stem(inputs)
             noise_term = torch.ones_like(targets)
@@ -125,6 +122,9 @@ class OnlineSKIRegression(torch.nn.Module):
             self.stem.train()
             if update_stem:
                 self._get_features(inputs)
+
+        stem_loss = self._update_stem(inputs, targets) if update_stem else 0.
+        gp_loss = self._update_gp(inputs, targets) if update_gp else 0.
 
         self.eval()
         return stem_loss, gp_loss
