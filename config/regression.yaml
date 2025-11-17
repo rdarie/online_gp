@@ -1,5 +1,5 @@
 project_name: online_gp
-project_version: 0.0.14
+project_version: 0.0.16
 
 defaults:
   - _self_
@@ -43,4 +43,4 @@ hydra:
     dir: ./${log_dir}
   sweep:
     dir: ./${log_dir}
-    subdir: .
+    subdir: ./${dataset.target_name}

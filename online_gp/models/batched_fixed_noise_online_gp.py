@@ -322,7 +322,7 @@ class FixedNoiseOnlineSKIGP(GP):
             num_data=self.num_data
         )
         if self.has_learnable_noise:
-            expanded_model.likelihood.second_noise_covar.noise = self.likelihood.second_noise_covar.noise.to(Kuu.device)
+            expanded_model.likelihood.second_noise_covar.noise = self.likelihood.second_noise_covar.noise.to(self.Kuu.device)
 
         expanded_model.condition_on_observations(
             inputs, targets.unsqueeze(-1), noise_term, inplace=True

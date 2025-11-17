@@ -66,6 +66,7 @@ class Neuromosaics_NHP(object):
                 ground_truth.columns = ['x', 'y', 'emg']
             else:
                 ground_truth = None
+
             stim_loc_list = []
             for e_idx in range(n_chan):
                 num_reps = all_data[9][e_idx, target_idx].shape[0]
@@ -86,7 +87,7 @@ class Neuromosaics_NHP(object):
                 torch.tensor(stim_locations, dtype=torch.get_default_dtype())
             )
             targets_list.append(
-                torch.tensor(sorted_resp[sorted_isvalid, :], dtype=torch.get_default_dtype())
+                torch.tensor(sorted_resp, dtype=torch.get_default_dtype())
                 )
 
         targets = torch.cat(targets_list, dim=0)
@@ -99,7 +100,11 @@ class Neuromosaics_NHP(object):
         input_min, _ = inputs.min(0)
         input_range = input_max - input_min
         inputs = 2 * ((inputs - input_min) / input_range - 0.5)
-        targets = (targets - targets.mean(0)) / targets.std(0)
+        target_mean, target_std = targets.detach().mean(0), targets.detach().std(0)
+        targets = (targets - target_mean) / target_std
+
+        if self.get_ground_truth:
+            ground_truth['emg'] = (ground_truth['emg'] - target_mean.cpu().numpy()[0]) / target_std.cpu().numpy()[0]
 
         dataset = TensorDataset(inputs, targets)
         generator = torch.Generator().manual_seed(split_seed)
