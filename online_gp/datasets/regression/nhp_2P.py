@@ -6,8 +6,10 @@ from torch.utils.data import TensorDataset, random_split
 
 class NHP_2P(object):
     def __init__(
-            self, dataset_dir=None, dataset_name=None,
+            self, dataset_dir=None, dataset_name=None, recordings=None,
+            window_name=None, probe_path=None, target_roi=None,
             subsample_ratio=1.0, test_ratio=0.1, split_seed=0,
+            shuffle=True, shuffle_seed=42, get_ground_truth=True,
             **kwargs):
         if dataset_dir is None:
             raise ValueError("Argument 'dataset_dir' cannot be empty")

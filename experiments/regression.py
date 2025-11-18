@@ -170,7 +170,7 @@ def regression_trial(config):
     if config.make_gof_plots:
         ground_truth_map = datasets.ground_truth
         dummy_inputs = torch.tensor(
-            ground_truth_map[['x', 'y']].to_numpy(),
+            ground_truth_map[['input_00', 'input_01']].to_numpy(),
             dtype=torch.get_default_dtype()
         )
 
@@ -184,30 +184,30 @@ def regression_trial(config):
 
         o_pred_mean, o_pred_var = online_model.predict(dummy_inputs)
         online_map = ground_truth_map.copy()
-        online_map['emg'] = o_pred_mean.detach().cpu().numpy()
+        online_map['target'] = o_pred_mean.detach().cpu().numpy()
         online_var_map = ground_truth_map.copy()
-        online_var_map['emg'] = o_pred_var.detach().cpu().numpy()
+        online_var_map['target'] = o_pred_var.detach().cpu().numpy()
 
         b_pred_mean, b_pred_var = batch_model.predict(dummy_inputs)
         batch_map = ground_truth_map.copy()
-        batch_map['emg'] = b_pred_mean.detach().cpu().numpy()
+        batch_map['target'] = b_pred_mean.detach().cpu().numpy()
         batch_var_map = ground_truth_map.copy()
-        batch_var_map['emg'] = b_pred_var.detach().cpu().numpy()
+        batch_var_map['target'] = b_pred_var.detach().cpu().numpy()
 
         pivoted_gt = ground_truth_map.pivot(
-            index='y', columns='x', values='emg'
+            index='input_01', columns='input_00', values='target'
         )
         pivoted_o_pred = online_map.pivot(
-            index='y', columns='x', values='emg'
+            index='input_01', columns='input_00', values='target'
         )
         pivoted_b_pred = batch_map.pivot(
-            index='y', columns='x', values='emg'
+            index='input_01', columns='input_00', values='target'
         )
         pivoted_o_pred_var = online_var_map.pivot(
-            index='y', columns='x', values='emg'
+            index='input_01', columns='input_00', values='target'
         )
         pivoted_b_pred_var = batch_var_map.pivot(
-            index='y', columns='x', values='emg'
+            index='input_01', columns='input_00', values='target'
         )
 
         fig, ax = plt.subplots(nrows=2, ncols=3)

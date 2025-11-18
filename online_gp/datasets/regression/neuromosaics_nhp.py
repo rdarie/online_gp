@@ -58,12 +58,13 @@ class Neuromosaics_NHP(object):
 
             ch2xy = all_data[16]
 
+            # TODO: is it possible to get the ground truth from multiple recordings
             if self.get_ground_truth:
                 sorted_resp_mean = all_data[10][:, target_idx]
                 ground_truth = pd.DataFrame(
                     np.concatenate([ch2xy, sorted_resp_mean.reshape(-1, 1)], axis=1)
                 )
-                ground_truth.columns = ['x', 'y', 'emg']
+                ground_truth.columns = ['input_00', 'input_01', 'target']
             else:
                 ground_truth = None
 
@@ -104,7 +105,7 @@ class Neuromosaics_NHP(object):
         targets = (targets - target_mean) / target_std
 
         if self.get_ground_truth:
-            ground_truth['emg'] = (ground_truth['emg'] - target_mean.cpu().numpy()[0]) / target_std.cpu().numpy()[0]
+            ground_truth['target'] = (ground_truth['target'] - target_mean.cpu().numpy()[0]) / target_std.cpu().numpy()[0]
 
         dataset = TensorDataset(inputs, targets)
         generator = torch.Generator().manual_seed(split_seed)
