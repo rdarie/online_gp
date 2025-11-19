@@ -102,7 +102,7 @@ class OnlineSGPRegression(torch.nn.Module):
             rmse, nll = regression.evaluate(self, inputs, targets)
         return rmse, nll
 
-    def update(self, inputs, targets, update_stem=True):
+    def update(self, inputs, targets, update_stem=True, update_gp=True):
         self.train()
         inputs = inputs.view(-1, self.stem.input_dim)
         targets = targets.view(-1, self.target_dim)

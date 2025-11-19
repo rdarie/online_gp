@@ -9,12 +9,13 @@ from online_gp.utils.data import interpret_stim_xy
 import numpy as np
 
 
-class NHP_1P(object):
+class NHP_NP(object):
     def __init__(
             self, dataset_dir=None, dataset_name=None, recordings=None,
             window_name=None, probe_path=None, target_roi=None,
             subsample_ratio=1.0, test_ratio=0.1, split_seed=0,
             shuffle=True, shuffle_seed=42, get_ground_truth=True,
+            stack_training_copies=1,
             **kwargs):
 
         self.dataset_dir = Path(dataset_dir)
@@ -42,6 +43,10 @@ class NHP_1P(object):
 
         self.train_dataset, self.test_dataset, self.ground_truth = self._preprocess(
             subsample_ratio, test_ratio, split_seed)
+
+        if stack_training_copies > 1:
+            self.train_dataset.indices = self.train_dataset.indices * stack_training_copies
+        return
 
     def _preprocess(self, subsample_ratio, test_ratio, split_seed):
 

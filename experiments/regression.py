@@ -168,62 +168,6 @@ def regression_trial(config):
 
     # hyperparameters
     if config.make_gof_plots:
-        ground_truth_map = datasets.ground_truth
-        dummy_inputs = torch.tensor(
-            ground_truth_map[['input_00', 'input_01']].to_numpy(),
-            dtype=torch.get_default_dtype()
-        )
-
-        if torch.cuda.is_available():
-            dummy_inputs = dummy_inputs.cuda()
-
-        input_max, _ = dummy_inputs.max(0)
-        input_min, _ = dummy_inputs.min(0)
-        input_range = input_max - input_min
-        dummy_inputs = 2 * ((dummy_inputs - input_min) / input_range - 0.5)
-
-        o_pred_mean, o_pred_var = online_model.predict(dummy_inputs)
-        online_map = ground_truth_map.copy()
-        online_map['target'] = o_pred_mean.detach().cpu().numpy()
-        online_var_map = ground_truth_map.copy()
-        online_var_map['target'] = o_pred_var.detach().cpu().numpy()
-
-        b_pred_mean, b_pred_var = batch_model.predict(dummy_inputs)
-        batch_map = ground_truth_map.copy()
-        batch_map['target'] = b_pred_mean.detach().cpu().numpy()
-        batch_var_map = ground_truth_map.copy()
-        batch_var_map['target'] = b_pred_var.detach().cpu().numpy()
-
-        pivoted_gt = ground_truth_map.pivot(
-            index='input_01', columns='input_00', values='target'
-        )
-        pivoted_o_pred = online_map.pivot(
-            index='input_01', columns='input_00', values='target'
-        )
-        pivoted_b_pred = batch_map.pivot(
-            index='input_01', columns='input_00', values='target'
-        )
-        pivoted_o_pred_var = online_var_map.pivot(
-            index='input_01', columns='input_00', values='target'
-        )
-        pivoted_b_pred_var = batch_var_map.pivot(
-            index='input_01', columns='input_00', values='target'
-        )
-
-        fig, ax = plt.subplots(nrows=2, ncols=3)
-        fig.set_size_inches(12, 8)
-        sns.heatmap(pivoted_gt, ax=ax[0, 0])
-        ax[0, 0].set_title('Ground truth mean')
-        sns.heatmap(pivoted_o_pred, ax=ax[0, 1])
-        ax[0, 1].set_title('Online mean')
-        sns.heatmap(pivoted_b_pred, ax=ax[0, 2])
-        ax[0, 2].set_title('Batch mean')
-        sns.heatmap(pivoted_o_pred_var, ax=ax[1, 1], cmap='crest')
-        ax[1, 1].set_title('Online variance')
-        sns.heatmap(pivoted_b_pred_var, ax=ax[1, 2], cmap='crest')
-        ax[1, 2].set_title('Batch variance')
-        fig.tight_layout()
-        fig.savefig('predictions.png')
 
         fig, ax = plt.subplots()
         ax.plot(online_df['step'], online_df['batch_rmse'].diff(), label='Batch RMSE')
@@ -232,6 +176,64 @@ def regression_trial(config):
         ax.set_ylabel('RMSE')
         fig.tight_layout()
         fig.savefig(Path('RMSE.png'))
+
+        ground_truth_map = datasets.ground_truth
+        if ground_truth_map.shape[1] == 3:
+            dummy_inputs = torch.tensor(
+                ground_truth_map[['input_00', 'input_01']].to_numpy(),
+                dtype=torch.get_default_dtype()
+            )
+
+            if torch.cuda.is_available():
+                dummy_inputs = dummy_inputs.cuda()
+
+            input_max, _ = dummy_inputs.max(0)
+            input_min, _ = dummy_inputs.min(0)
+            input_range = input_max - input_min
+            dummy_inputs = 2 * ((dummy_inputs - input_min) / input_range - 0.5)
+
+            o_pred_mean, o_pred_var = online_model.predict(dummy_inputs)
+            online_map = ground_truth_map.copy()
+            online_map['target'] = o_pred_mean.detach().cpu().numpy()
+            online_var_map = ground_truth_map.copy()
+            online_var_map['target'] = o_pred_var.detach().cpu().numpy()
+
+            b_pred_mean, b_pred_var = batch_model.predict(dummy_inputs)
+            batch_map = ground_truth_map.copy()
+            batch_map['target'] = b_pred_mean.detach().cpu().numpy()
+            batch_var_map = ground_truth_map.copy()
+            batch_var_map['target'] = b_pred_var.detach().cpu().numpy()
+
+            pivoted_gt = ground_truth_map.pivot(
+                index='input_01', columns='input_00', values='target'
+            )
+            pivoted_o_pred = online_map.pivot(
+                index='input_01', columns='input_00', values='target'
+            )
+            pivoted_b_pred = batch_map.pivot(
+                index='input_01', columns='input_00', values='target'
+            )
+            pivoted_o_pred_var = online_var_map.pivot(
+                index='input_01', columns='input_00', values='target'
+            )
+            pivoted_b_pred_var = batch_var_map.pivot(
+                index='input_01', columns='input_00', values='target'
+            )
+
+            fig, ax = plt.subplots(nrows=2, ncols=3)
+            fig.set_size_inches(12, 8)
+            sns.heatmap(pivoted_gt, ax=ax[0, 0])
+            ax[0, 0].set_title('Ground truth mean')
+            sns.heatmap(pivoted_o_pred, ax=ax[0, 1])
+            ax[0, 1].set_title('Online mean')
+            sns.heatmap(pivoted_b_pred, ax=ax[0, 2])
+            ax[0, 2].set_title('Batch mean')
+            sns.heatmap(pivoted_o_pred_var, ax=ax[1, 1], cmap='crest')
+            ax[1, 1].set_title('Online variance')
+            sns.heatmap(pivoted_b_pred_var, ax=ax[1, 2], cmap='crest')
+            ax[1, 2].set_title('Batch variance')
+            fig.tight_layout()
+            fig.savefig('predictions.png')
 
 
 

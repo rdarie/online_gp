@@ -103,13 +103,15 @@ class OnlineSVGPRegression(torch.nn.Module):
             rmse, nll = regression.evaluate(self, inputs, targets)
         return rmse, nll
 
-    def update(self, inputs, targets, update_stem=True):
+    def update(self, inputs, targets, update_stem=True, update_gp=True):
         if self.gp.streaming:
             self.gp.register_streaming_loss()
         inputs = inputs.view(-1, self.stem.input_dim)
         targets = targets.view(-1, self.target_dim)
-        self.mll = VariationalELBO(self.gp.likelihood, self.gp, num_data=inputs.size(0),
-                                   beta=self._prior_beta)
+        self.mll = VariationalELBO(
+            self.gp.likelihood, self.gp, num_data=inputs.size(0),
+            beta=self._prior_beta)
+        # todo use update_gp to optionally turn off hyperparameter optimization
         self.train()
         for _ in range(self.num_update_steps):
             self.optimizer.zero_grad()
