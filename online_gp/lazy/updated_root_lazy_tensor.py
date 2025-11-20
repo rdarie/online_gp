@@ -1,13 +1,14 @@
 import torch
-from gpytorch.lazy import lazify, LazyTensor, RootLazyTensor
+from linear_operator.operators import LinearOperator, RootLinearOperator
+from linear_operator import to_linear_operator
 from gpytorch.settings import cholesky_jitter
-from gpytorch.utils.memoize import cached
-from gpytorch.utils.cholesky import psd_safe_cholesky
+from linear_operator.utils.memoize import cached
+from linear_operator.utils.cholesky import psd_safe_cholesky
 import warnings
 
 # from ..utils.timing import timed
 
-class UpdatedRootLazyTensor(LazyTensor):
+class UpdatedRootLinearOperator(LinearOperator):
     def __init__(
         self,
         initial_tensor=None,
@@ -28,7 +29,7 @@ class UpdatedRootLazyTensor(LazyTensor):
         if initial_is_root:
             initial_tensor = initial_tensor.transpose(-1, -2) @ initial_tensor
 
-        super(UpdatedRootLazyTensor, self).__init__(
+        super(UpdatedRootLinearOperator, self).__init__(
             initial_tensor,
             n_shape=n_shape,
             initial_is_root=False,
@@ -59,7 +60,7 @@ class UpdatedRootLazyTensor(LazyTensor):
 
         # then update the root decomposition
         root, inv_root = self.collect_vector(vector)
-        return UpdatedRootLazyTensor(
+        return UpdatedRootLinearOperator(
             tensor,
             initial_is_root=False,
             root=root,
@@ -123,14 +124,14 @@ class UpdatedRootLazyTensor(LazyTensor):
         if self.root is None:
             return super().root_decomposition(**kwargs)
         else:
-            return RootLazyTensor(self.root)
+            return RootLinearOperator(self.root)
 
     @cached(name="root_inv_decomposition")
     def root_inv_decomposition(self, **kwargs):
         if self.inv_root is None:
             return super().root_inv_decomposition(**kwargs)
         else:
-            return RootLazyTensor(self.inv_root)
+            return RootLinearOperator(self.inv_root)
 
     def evaluate(self):
         # evaluation is straightforward, just return the tensor
@@ -154,6 +155,6 @@ class UpdatedRootLazyTensor(LazyTensor):
             expanded_root = self.root.repeat(*batch_repeat, 1, 1)
             expanded_inv_root = self.inv_root.repeat(*batch_repeat, 1, 1)
         
-            return UpdatedRootLazyTensor(expanded_tensor, initial_is_root=False, root=expanded_root, inv_root=expanded_inv_root)
+            return UpdatedRootLinearOperator(expanded_tensor, initial_is_root=False, root=expanded_root, inv_root=expanded_inv_root)
         else:
-            return UpdatedRootLazyTensor(expanded_tensor, initial_is_root=False)
+            return UpdatedRootLinearOperator(expanded_tensor, initial_is_root=False)

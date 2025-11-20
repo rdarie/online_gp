@@ -1,5 +1,5 @@
 project_name: online_gp
-project_version: 0.0.16
+project_version: 0.0.17
 
 defaults:
   - _self_

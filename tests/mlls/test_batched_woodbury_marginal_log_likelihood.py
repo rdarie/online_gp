@@ -3,7 +3,7 @@ import numpy as np
 from unittest import TestCase, main
 import gpytorch
 from copy import deepcopy
-from botorch.models import SingleTaskGP, FixedNoiseGP
+from botorch.models import SingleTaskGP
 from gpytorch.likelihoods import FixedNoiseGaussianLikelihood
 from gpytorch.means import ZeroMean
 from gpytorch.mlls import ExactMarginalLogLikelihood

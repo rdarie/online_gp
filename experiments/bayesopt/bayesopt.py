@@ -2,9 +2,9 @@ import time
 import argparse
 import torch
 
-from botorch import fit_gpytorch_model
-from botorch.optim.fit import fit_gpytorch_torch
-from botorch.models import SingleTaskGP, FixedNoiseGP
+from botorch import fit_gpytorch_mll
+from botorch.optim.fit import fit_gpytorch_mll_torch
+from botorch.models import SingleTaskGP
 from gpytorch.constraints import Interval
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.kernels import ScaleKernel, MaternKernel
@@ -119,7 +119,7 @@ def main(args):
                 )
 
                 if args.fixed_noise:
-                    model_obj = FixedNoiseGP(
+                    model_obj = SingleTaskGP(
                         X, Y, train_Yvar=noise, covar_module=covar_module
                     )
                 else:
@@ -184,9 +184,9 @@ def main(args):
 
         # fitting with LBFGSB is really slow due to the inducing points
         if args.model != "osvgp":
-            fit_gpytorch_model(mll)
+            fit_gpytorch_mll(mll)
         else:
-            fit_gpytorch_torch(mll, options={"maxiter": 1000})
+            fit_gpytorch_mll_torch(mll, options={"maxiter": 1000})
 
         t0_total = time.time() - t0
 

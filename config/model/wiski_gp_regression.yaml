@@ -4,5 +4,7 @@ name: wiski_gp_regression
 type: regression
 init_ratio: 0.05
 lr: 1e-2
-grid_size: 10
+grid_size: 7
 grid_bound: 0.7
+save_training_scores: True
+evaluation_batch_size: 16

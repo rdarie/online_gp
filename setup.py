@@ -13,7 +13,7 @@ else:
 
 setup(
     name='online_gp',
-    version='0.0.16',
+    version='0.0.17',
     description=('Repo for Streaming GPs'),
     long_description=long_description,
     author='',

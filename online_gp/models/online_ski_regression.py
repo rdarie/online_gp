@@ -10,11 +10,16 @@ from online_gp.mlls.streaming_partial_mll import sm_partial_mll
 from online_gp.utils import regression
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from online_gp.settings import detach_interp_coeff
-
+from tqdm import tqdm
 
 class OnlineSKIRegression(torch.nn.Module):
-    def __init__(self, stem, init_x, init_y, lr, grid_size, grid_bound, covar_module=None, **kwargs):
+    def __init__(
+            self, stem, init_x, init_y, lr, grid_size, grid_bound, covar_module=None,
+            save_training_scores=True, evaluation_batch_size=512,
+            **kwargs):
         super().__init__()
+        self.evaluation_batch_size = evaluation_batch_size
+        self.save_training_scores = save_training_scores
         self.stem = stem.to(init_x.device)
         assert init_y.ndim == 2, "targets must have explicit output dimension"
         if init_y.size(-1) == 1:
@@ -39,6 +44,7 @@ class OnlineSKIRegression(torch.nn.Module):
         self._target_batch_shape = target_batch_shape
         self.target_dim = init_y.size(-1)
         self._raw_inputs = [init_x]
+        return
 
     def forward(self, inputs):
         inputs = inputs.view(-1, self.stem.input_dim)
@@ -65,7 +71,7 @@ class OnlineSKIRegression(torch.nn.Module):
         inputs = inputs.view(-1, self.stem.input_dim)
         targets = targets.view(-1, self.target_dim)
         dataset = torch.utils.data.TensorDataset(inputs, targets)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=1024)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.evaluation_batch_size)
         # Don't use `torch.no_grad` here, caches will be used for training
         self.eval()
         rmse, nll = 0, 0
@@ -82,7 +88,7 @@ class OnlineSKIRegression(torch.nn.Module):
         gp_lr_sched = CosineAnnealingLR(self.gp_optimizer, num_epochs, 1e-4)
         stem_lr_sched = CosineAnnealingLR(self.stem_optimizer, num_epochs, 1e-4)
         features = self._refresh_features(inputs, targets)
-        for epoch in range(num_epochs):
+        for epoch in tqdm(range(num_epochs)):
             self.train()
             self.mll.train()
             self.stem_optimizer.zero_grad()
@@ -97,7 +103,7 @@ class OnlineSKIRegression(torch.nn.Module):
             features = self._refresh_features(inputs, targets)
 
             rmse = nll = float('NaN')
-            if test_dataset is not None:
+            if (test_dataset is not None) and self.save_training_scores:
                 test_x, test_y = test_dataset[:]
                 rmse, nll = self.evaluate(test_x, test_y)
             records.append({'epoch': epoch + 1, 'train_loss': loss.item(),

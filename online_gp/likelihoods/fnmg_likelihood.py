@@ -4,7 +4,7 @@ from typing import Any
 import torch
 from torch import Tensor
 
-from gpytorch.lazy import ZeroLazyTensor
+from linear_operator.operators import ZeroLinearOperator
 from gpytorch.utils.warnings import GPInputWarning
 from gpytorch.likelihoods import FixedNoiseGaussianLikelihood
 
@@ -29,7 +29,7 @@ class FNMGLikelihood(FixedNoiseGaussianLikelihood):
 
         if self.second_noise_covar is not None:
             res = res * self.second_noise_covar(*params, shape=shape, **kwargs)
-        elif isinstance(res, ZeroLazyTensor):
+        elif isinstance(res, ZeroLinearOperator):
             warnings.warn(
                 "You have passed data through a FixedNoiseGaussianLikelihood that did not match the size "
                 "of the fixed noise, *and* you did not specify noise. This is treated as a no-op.",

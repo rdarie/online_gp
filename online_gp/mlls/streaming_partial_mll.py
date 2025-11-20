@@ -31,7 +31,7 @@ def sm_partial_mll(ski_gp, new_x, new_y, num_seen):
     # v := Mw
     v = solves[..., :1]
     # v_rhs = Kuu_L_t.matmul(w)
-    # v = Kuu.matmul(w) - Kuu_L.matmul(Q.inv_matmul(v_rhs))
+    # v = Kuu.matmul(w) - Kuu_L.matmul(Q.solve(v_rhs))
     v_t = v.transpose(-1, -2)
     sm_divisor = 1 + v_t.bmm(w)
 
@@ -40,7 +40,7 @@ def sm_partial_mll(ski_gp, new_x, new_y, num_seen):
     # # quad_term_2 := y'WK_{uu}LQ^{-1}L'K_{uu}W'y
     # term_2_rhs = Kuu_L_t.matmul(new_W_y)
     # term_2_rhs_t = term_2_rhs.transpose(-1, -2)
-    # quad_term_2 = term_2_rhs_t.matmul(Q.inv_matmul(term_2_rhs))
+    # quad_term_2 = term_2_rhs_t.matmul(Q.solve(term_2_rhs))
     # quad_term_3 := y'Wvv'W'y / (1 + v'w)
 
     M_W_y = solves[..., 1:]

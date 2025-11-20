@@ -1,8 +1,9 @@
 from gpytorch.models import ApproximateGP
 from gpytorch import variational, means, kernels, likelihoods, distributions, lazy
+from linear_operator.operators import TriangularLinearOperator, CholLinearOperator
 import torch
 from copy import deepcopy
-from gpytorch.utils.cholesky import psd_safe_cholesky
+from linear_operator.utils.cholesky import psd_safe_cholesky
 
 
 class StreamingSGPR(ApproximateGP):
@@ -72,13 +73,13 @@ class StreamingSGPR(ApproximateGP):
             Kaa_old = self._old_kernel(z_a).add_jitter(self._jitter).detach()
             C_old = self._old_C_matrix.detach()
             Kab = self.covar_module(z_a, z_b).evaluate()
-            Kaa_old_inv_Kab = Kaa_old.inv_matmul(Kab)
+            Kaa_old_inv_Kab = Kaa_old.solve(Kab)
             C2 = Kaa_old_inv_Kab.transpose(-1, -2) @ C_old.matmul(Kaa_old_inv_Kab)
 
         C = C1 + C2
         L = psd_safe_cholesky(C, upper=False, jitter=self._jitter)
-        L = lazy.TriangularLazyTensor(L, upper=False)
-        return lazy.CholLazyTensor(L, upper=False)
+        L = TriangularLinearOperator(L, upper=False)
+        return CholLinearOperator(L, upper=False)
 
     def current_c_vec(self, x, y):
         sigma2 = self.likelihood.noise
@@ -97,8 +98,8 @@ class StreamingSGPR(ApproximateGP):
             Kaa_old = self._old_kernel(z_a).add_jitter(self._jitter).detach()
             C_old = self._old_C_matrix.detach()
             Kab = self.covar_module(z_a, z_b).evaluate()
-            Kaa_old_inv_ma = Kaa_old.inv_matmul(ma)
-            Kba_Kaa_old_inv = Kaa_old.inv_matmul(Kab).transpose(-1, -2)
+            Kaa_old_inv_ma = Kaa_old.solve(ma)
+            Kba_Kaa_old_inv = Kaa_old.solve(Kab).transpose(-1, -2)
 
             c2 = Kab.transpose(-1, -2) @ Kaa_old_inv_ma
             c3 = Kba_Kaa_old_inv @ C_old.matmul(Kaa_old_inv_ma)
@@ -114,7 +115,7 @@ class StreamingSGPR(ApproximateGP):
         z_a = self._old_strat.inducing_points.detach()
         Kaa_old = self._old_kernel(z_a).evaluate().detach()
         C_old = self._old_C_matrix.detach()
-        C_old_inv_ma = C_old.inv_matmul(ma)
+        C_old_inv_ma = C_old.solve(ma)
 
         return Kaa_old @ C_old_inv_ma + ma
 
@@ -198,7 +199,7 @@ class StreamingSGPRBound(object):
         Kbf = self.gp.covar_module(z_b, x).evaluate()
         Kbb = self.gp.covar_module(z_b).add_jitter(self.gp._jitter)
 
-        Q1 = Kbf.transpose(-1, -2) @ Kbb.inv_matmul(Kbf)
+        Q1 = Kbf.transpose(-1, -2) @ Kbb.solve(Kbf)
         Sigma1 = sigma2 * torch.eye(Q1.size(-1)).to(Q1.device)
 
         # logp term
@@ -212,7 +213,7 @@ class StreamingSGPRBound(object):
             z_a = self.gp._old_strat.inducing_points.detach()
             Kba = self.gp.covar_module(z_b, z_a).evaluate()
             Kaa_old = self.gp._old_kernel(z_a).evaluate().detach()
-            Q2 = Kba.transpose(-1, -2) @ Kbb.inv_matmul(Kba)
+            Q2 = Kba.transpose(-1, -2) @ Kbb.solve(Kba)
             zero_1 = torch.zeros(Q1.size(-2), Q2.size(-1)).to(Q1.device)
             zero_2 = torch.zeros(Q2.size(-2), Q1.size(-1)).to(Q1.device)
             Q = torch.cat(
@@ -223,7 +224,7 @@ class StreamingSGPRBound(object):
             )
 
             C_old = self.gp._old_C_matrix.detach()
-            Sigma2 = Kaa_old @ C_old.inv_matmul(Kaa_old)
+            Sigma2 = Kaa_old @ C_old.solve(Kaa_old)
             Sigma2 = Sigma2 + self.gp._jitter * torch.eye(Sigma2.size(-2)).to(Sigma2.device)
             Sigma = torch.cat(
                 [
@@ -240,14 +241,14 @@ class StreamingSGPRBound(object):
             num_data = y_hat.size(-2)
 
         # trace term
-        t1 = (Kff - Q1).diag().sum() / sigma2
+        t1 = (Kff - Q1).diagonal().sum() / sigma2
         t2 = 0
         if self.gp._old_strat is not None:
             LSigma2 = psd_safe_cholesky(Sigma2, upper=False, jitter=self.gp._jitter)
             Kaa = self.gp.covar_module(z_a).evaluate().detach()
             Sigma2_inv_Kaa = torch.cholesky_solve(Kaa, LSigma2, upper=False)
             Sigma2_inv_Q2 = torch.cholesky_solve(Q2, LSigma2, upper=False)
-            t2 = Sigma2_inv_Kaa.diag().sum() - Sigma2_inv_Q2.diag().sum()
+            t2 = Sigma2_inv_Kaa.diagonal().sum() - Sigma2_inv_Q2.diagonal().sum()
         trace_term = -(t1 + t2) / 2 / num_data
 
         if self._combine_terms:

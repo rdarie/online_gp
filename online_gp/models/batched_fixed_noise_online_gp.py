@@ -3,19 +3,18 @@ import torch
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.kernels import ScaleKernel, RBFKernel, GridInterpolationKernel
 from gpytorch.means import ZeroMean
-from gpytorch.lazy import DiagLazyTensor, lazify, RootLazyTensor
+from linear_operator.operators import DiagLinearOperator, RootLinearOperator, ZeroLinearOperator
+from linear_operator import to_linear_operator
 from online_gp.likelihoods import FNMGLikelihood
+from online_gp.lazy import UpdatedRootLinearOperator
 from gpytorch.models import GP
-from gpytorch.utils.memoize import (
+from linear_operator.utils.memoize import (
     cached,
     pop_from_cache,
 )
-from gpytorch.utils.errors import CachingError
-from gpytorch.utils.interpolation import left_interp
+from linear_operator.utils.errors import CachingError
+from linear_operator.utils.interpolation import left_interp
 from gpytorch.settings import skip_posterior_variances, fast_pred_var, fast_pred_samples
-from gpytorch.lazy import ZeroLazyTensor
-
-from online_gp.lazy import UpdatedRootLazyTensor
 from online_gp.settings import detach_interp_coeff
 
 
@@ -31,7 +30,7 @@ def _get_wmat_from_kernel(lazy_kernel):
 def _initialize_caches(targets, noise_diagonal, wmat, create_w_cache=True):
     if len(noise_diagonal.shape) > 2:
         noise_diagonal = noise_diagonal.squeeze(-1)
-    noise_diagonal = DiagLazyTensor(noise_diagonal)
+    noise_diagonal = DiagLinearOperator(noise_diagonal)
 
     # reshape the targets so that we have niceness in the batch dimensions
     if targets.ndimension() == 2:
@@ -39,7 +38,7 @@ def _initialize_caches(targets, noise_diagonal, wmat, create_w_cache=True):
     if targets.ndimension() <= 3:
         targets = targets.transpose(-2, -3)
 
-    dinv_y = noise_diagonal.inv_matmul(targets)
+    dinv_y = noise_diagonal.solve(targets)
 
     cache_dict = {
         "response_cache": targets.transpose(-1, -2) @ dinv_y,
@@ -47,8 +46,8 @@ def _initialize_caches(targets, noise_diagonal, wmat, create_w_cache=True):
     }
 
     if create_w_cache:
-        cache_dict["WtW"] = UpdatedRootLazyTensor(
-            wmat @ (noise_diagonal.inv_matmul(wmat.transpose(-1, -2))),
+        cache_dict["WtW"] = UpdatedRootLinearOperator(
+            wmat @ (noise_diagonal.solve(wmat.transpose(-1, -2))),
             initial_is_root=False,
         )
 
@@ -82,9 +81,11 @@ class FixedNoiseOnlineSKIGP(GP):
             num_outputs = train_targets.shape[-1]
             input_batch_shape = train_inputs.shape[:-2]
             self.num_data = train_inputs.shape[-2]
+            self.device = train_inputs.device
         else:
             # pull from kernel_cache
             num_outputs = kernel_cache["response_cache"].shape[-1]
+            self.device = kernel_cache["response_cache"].device
             input_batch_shape = kernel_cache["WtW"].shape[0]
             self.num_data = num_data
 
@@ -149,6 +150,7 @@ class FixedNoiseOnlineSKIGP(GP):
             )      
         else:
             self._kernel_cache = kernel_cache
+        return
 
     # TODO: make _cache_dict a cached object
     def _update_cache_dicts(self, targets, noise_diagonal, new_wmat):
@@ -182,9 +184,9 @@ class FixedNoiseOnlineSKIGP(GP):
                 else:
                     batch_shape = self._batch_shape
                 mean_shape = batch_shape + torch.Size((self.num_data,))
-                mean = ZeroLazyTensor(*mean_shape)
+                mean = ZeroLinearOperator(*mean_shape)
                 covar_shape = mean_shape + torch.Size((self.num_data,))
-                covar = ZeroLazyTensor(*covar_shape)
+                covar = ZeroLinearOperator(*covar_shape)
 
             # should hopefuly only occur in batching issues
             if (
@@ -194,7 +196,7 @@ class FixedNoiseOnlineSKIGP(GP):
                     and mean.shape != covar.shape[:-1]
                 )                
             ):
-                if type(mean) is ZeroLazyTensor:
+                if type(mean) is ZeroLinearOperator:
                     mean = mean.evaluate()
                 mean = mean.unsqueeze(0)
                 mean = mean.repeat(covar.batch_shape[0], *[1]*(covar.ndimension() - 1))
@@ -220,7 +222,7 @@ class FixedNoiseOnlineSKIGP(GP):
 
                 if fast_pred_samples.off():
                     pred_wmat = _get_wmat_from_kernel(lazy_kernel)
-                    lazy_pred_wmat = lazify(pred_wmat)
+                    lazy_pred_wmat = to_linear_operator(pred_wmat)
                     pred_cov = lazy_pred_wmat.transpose(-1, -2).matmul((inner_pred_cov.matmul(lazy_pred_wmat)))
 
                     if self.has_learnable_noise:
@@ -239,10 +241,10 @@ class FixedNoiseOnlineSKIGP(GP):
                     
                     if self.has_learnable_noise:
                         noise_root = self.likelihood.second_noise_covar.noise.to(root_tensor.device) ** 0.5
-                    pred_cov = RootLazyTensor(root_tensor * noise_root)
+                    pred_cov = RootLinearOperator(root_tensor * noise_root)
 
             else:
-                pred_cov = ZeroLazyTensor(*lazy_kernel.size())
+                pred_cov = ZeroLinearOperator(*lazy_kernel.size())
 
             pred_mean = pred_mean[..., 0]
             if self._batch_shape == torch.Size() and X.ndimension() == 2:
@@ -336,7 +338,7 @@ class FixedNoiseOnlineSKIGP(GP):
         if self.has_learnable_noise:
             # append 1 / \sigma^2 into the Kuu term in the qmatrix
             Kuu = Kuu / self.likelihood.second_noise_covar.noise
-        return Kuu
+        return Kuu.to(self.device)
 
     @property
     @cached(name="current_inducing_compression_matrix")
@@ -368,9 +370,9 @@ class FixedNoiseOnlineSKIGP(GP):
     def prediction_cache(self):
         prediction_cache = {}
 
-        Kuu_Lmat = self.current_inducing_compression_matrix.evaluate()
+        Kuu_Lmat = self.current_inducing_compression_matrix.to_dense()
 
-        qmat_solve = self.current_qmatrix.inv_matmul(self.root_space_projection)
+        qmat_solve = self.current_qmatrix.solve(self.root_space_projection)
         predictive_mean_cache = self.Kuu_response - Kuu_Lmat @ qmat_solve
         prediction_cache["pred_mean"] = predictive_mean_cache
 
@@ -386,16 +388,16 @@ class FixedNoiseOnlineSKIGP(GP):
         if Kuu is None:
             Kuu = self.Kuu
         if Kuu_Lmat is None:
-            Kuu_Lmat = self.current_inducing_compression_matrix.evaluate()
+            Kuu_Lmat = self.current_inducing_compression_matrix.to_dense()
 
         if fast_pred_var.on():
             qmat_inv_root = qmatrix.root_inv_decomposition()
-            # to lazify you have to evaluate the inverse root which is slow
+            # for to_linear_operator you have to evaluate the inverse root which is slow
             # otherwise, you can't backprop your way through it
-            inner_cache = RootLazyTensor(Kuu_Lmat.matmul(qmat_inv_root.root.evaluate()))
+            inner_cache = RootLinearOperator(Kuu_Lmat.matmul(qmat_inv_root.root.evaluate()))
         else:
             inner_cache = Kuu_Lmat.matmul(
-                qmatrix.inv_matmul(Kuu_Lmat.transpose(-1, -2))
+                qmatrix.solve(Kuu_Lmat.transpose(-1, -2))
             )
 
         predictive_covar_cache = Kuu - inner_cache

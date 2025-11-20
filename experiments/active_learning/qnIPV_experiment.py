@@ -3,7 +3,7 @@ import time
 import torch
 import gpytorch
 
-from botorch.models import FixedNoiseGP
+from botorch.models import SingleTaskGP
 from botorch.optim.fit import fit_gpytorch_torch
 from botorch.optim import optimize_acqf
 from botorch.sampling.samplers import SobolQMCNormalSampler
@@ -104,7 +104,7 @@ def main(args):
 
         mll_type = lambda x, y: BatchedWoodburyMarginalLogLikelihood(x, y, clear_caches_every_iteration=True)
     elif args.model == "exact":
-        model = FixedNoiseGP(
+        model = SingleTaskGP(
             init_x,
             init_y.view(-1, 1),
             init_y_var.view(-1, 1),

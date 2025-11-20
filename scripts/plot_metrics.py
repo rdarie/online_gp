@@ -26,13 +26,15 @@ dir_list = [
     ##
     # base_dir_2 / r"wiski_gp_regression-neuromosaics_nhp-0.0.16\trial_0\2025-11-19_15-47-15",
     # base_dir_2 / r"exact_gp_regression-neuromosaics_nhp-0.0.16\trial_0\2025-11-19_16-25-14",
-    base_dir_2 / r"wiski_gp_regression-neuromosaics_nhp-0.0.16\trial_0\2025-11-19_16-36-08",
+    base_dir_2 / r"wiski_gp_regression-NHP_NP-0.0.16\trial_0\2025-11-20_13-54-13",
 ]
 
 ls_col = 'online_gp.covar_module.base_kernel.base_kernel.raw_lengthscale'
+# ls_col = 'online_gp.covar_module.base_kernel.raw_lengthscale'
 
 for results_dir in dir_list:
     data = pd.read_csv(results_dir / 'online_metrics.csv')
+    data['step_time'] *= 1e3
 
     fig, ax = plt.subplots()
     ax.plot(data['step'], data['batch_rmse'].diff(), label='Batch RMSE')
@@ -42,12 +44,19 @@ for results_dir in dir_list:
     fig.savefig(results_dir / 'RMSE.png')
     plt.show()
 
-    fig, ax = plt.subplots()
-    ax.plot(data['step'], data['step_time'] * 1e3)
-    ax.set_title(f"{results_dir.relative_to(results_dir.parents[2])}")
-    ax.legend(loc='upper right')
-    ax.set_xlabel('Step')
-    ax.set_ylabel('Update duration (ms)')
+    fig, ax = plt.subplots(
+        ncols=2, gridspec_kw={'width_ratios': [3, 1], 'wspace': 0.01},
+        sharey=True,
+    )
+    ax[0].plot(data['step'], data['step_time'])
+    # ax[0].legend(loc='upper right')
+    ax[0].set_xlabel('Step')
+    ax[0].set_ylabel('Update duration (ms)')
+    sns.histplot(data, y='step_time', ax=ax[1], stat='proportion')
+    ax[1].set_ylabel('')
+    twax = ax[1].twiny()
+    sns.ecdfplot(data, y='step_time', ax=twax, stat='proportion', color='orange')
+    fig.suptitle(f"{results_dir.relative_to(results_dir.parents[2])}")
     fig.savefig(results_dir / 'step_duration.png')
     plt.show()
 

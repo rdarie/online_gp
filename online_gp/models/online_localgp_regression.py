@@ -66,7 +66,7 @@ class LocalGPModel(IndependentModelList):
             posterior_list = [m.likelihood(m(X)) for m in self.models]
             stacked_means = torch.stack([p.mean for p in posterior_list]).transpose(-1,-2)
             stacked_covar_diags = torch.stack(
-                [p.covariance_matrix.diag() for p in posterior_list]
+                [p.covariance_matrix.diagonal() for p in posterior_list]
             ).transpose(-1,-2)
             stacked_dist = Normal(stacked_means, stacked_covar_diags)
             return MixtureSameFamily(weight_distribution, stacked_dist)

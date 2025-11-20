@@ -1,1 +1,1 @@
-from .updated_root_lazy_tensor import UpdatedRootLazyTensor
+from .updated_root_lazy_tensor import UpdatedRootLinearOperator

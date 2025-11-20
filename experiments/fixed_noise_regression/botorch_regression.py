@@ -5,7 +5,7 @@ import torch
 import pandas as pd
 import numpy as np
 
-from botorch.models import FixedNoiseGP
+from botorch.models import SingleTaskGP
 from botorch.optim.fit import fit_gpytorch_torch
 from gpytorch.kernels import GridInterpolationKernel, MaternKernel, ScaleKernel
 from gpytorch.priors import GammaPrior
@@ -85,7 +85,7 @@ def main(args):
             num_dims=2,
             grid_bounds=torch.tensor([[0.0, 1.0], [0.0, 1.0]]),
         )
-    model = FixedNoiseGP(
+    model = SingleTaskGP(
         init_x,
         init_y.view(-1, 1),
         init_y_var.view(-1, 1),

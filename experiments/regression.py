@@ -11,7 +11,7 @@ import ctypes
 from matplotlib import pyplot as plt
 from pathlib import Path
 from online_gp.settings import detach_interp_coeff
-
+import torch
 import seaborn as sns
 sns.set(style='whitegrid')
 
@@ -174,8 +174,26 @@ def regression_trial(config):
         ax.plot(online_df['step'], online_df['online_rmse'].diff(), label='Online RMSE')
         ax.set_title('step')
         ax.set_ylabel('RMSE')
+        ax.legend(loc='upper right')
         fig.tight_layout()
         fig.savefig(Path('RMSE.png'))
+        plt.close()
+
+        online_df['step_time'] *= 1e3
+        fig, ax = plt.subplots(
+            ncols=2, gridspec_kw={'width_ratios': [4, 1]},
+            sharey=True,
+        )
+        ax[0].plot(online_df['step'], online_df['step_time'])
+        # ax[0].legend(loc='upper right')
+        ax[0].set_xlabel('Step')
+        ax[0].set_ylabel('Update duration (ms)')
+        sns.histplot(online_df, y='step_time', ax=ax[1])
+        ax[1].set_ylabel('')
+        twax = ax[1].twiny()
+        sns.ecdfplot(online_df, y='step_time', ax=twax, stat='proportion', color='orange')
+        fig.savefig(Path('step_duration.png'))
+        plt.close()
 
         ground_truth_map = datasets.ground_truth
         if ground_truth_map.shape[1] == 3:
@@ -234,8 +252,7 @@ def regression_trial(config):
             ax[1, 2].set_title('Batch variance')
             fig.tight_layout()
             fig.savefig('predictions.png')
-
-
+            plt.close()
 
 
 # Load WinMM

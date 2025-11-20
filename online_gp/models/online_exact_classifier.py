@@ -3,7 +3,7 @@ import gpytorch
 
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from online_gp.models.gp_dirichlet_classification import DirichletGPClassifier
-from botorch.models.gp_regression import FixedNoiseGP
+from botorch.models.gp_regression import SingleTaskGP
 from gpytorch.kernels import RBFKernel, ScaleKernel
 
 
@@ -16,7 +16,7 @@ class OnlineExactClassifier(DirichletGPClassifier):
         else:
             _batch_shape = torch.Size()
         features = stem(init_x)
-        gp = FixedNoiseGP(
+        gp = SingleTaskGP(
             features,
             transformed_y,
             sigma2_i,

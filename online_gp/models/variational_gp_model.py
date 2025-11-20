@@ -6,7 +6,7 @@ import torch
 from botorch.models.model import Model
 from botorch.posteriors.gpytorch import GPyTorchPosterior
 from gpytorch.settings import cholesky_jitter
-from gpytorch.utils.cholesky import psd_safe_cholesky
+from linear_operator.utils.cholesky import psd_safe_cholesky
 
 from ..mlls import StreamingAddedLossTerm
 
@@ -170,7 +170,7 @@ class VariationalGPModel(gpytorch.models.ApproximateGP):
 
             D_a_inv = (S_a.evaluate().inverse() - K_aa_old.evaluate().inverse())
             # compute D S_a^{-1} m_a
-            pseudo_points = torch.solve(S_a.inv_matmul(m_a).unsqueeze(-1), D_a_inv)[0]
+            pseudo_points = torch.solve(S_a.solve(m_a).unsqueeze(-1), D_a_inv)[0]
             # stack y and the pseudo points
             hat_y = torch.cat((new_y.view(-1,1), pseudo_points))
 
@@ -189,7 +189,7 @@ class VariationalGPModel(gpytorch.models.ApproximateGP):
             K_bb = self.covar_module(new_inducing_points)
 
             # C = K_{hat f b} K_{bb}^{-1} K_{b hat f} + Sigma_\hat y
-            pred_cov = K_fb @ (K_bb.inv_matmul(K_fb.evaluate().t())) + sigma_hat_y
+            pred_cov = K_fb @ (K_bb.solve(K_fb.evaluate().t())) + sigma_hat_y
 
             # the new mean is K_{hat f b} C^{-1} \hat y
             new_mean = K_fb.t() @ torch.solve(hat_y, pred_cov)[0].squeeze(-1).detach().contiguous()
