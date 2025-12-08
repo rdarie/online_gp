@@ -324,7 +324,7 @@ class FixedNoiseOnlineSKIGP(GP):
             num_data=self.num_data
         )
         if self.has_learnable_noise:
-            expanded_model.likelihood.second_noise_covar.noise = self.likelihood.second_noise_covar.noise.to(self.Kuu.device)
+            expanded_model.likelihood.second_noise_covar.noise = self.likelihood.second_noise_covar.noise.to(self.device)
 
         expanded_model.condition_on_observations(
             inputs, targets.unsqueeze(-1), noise_term, inplace=True
@@ -373,7 +373,8 @@ class FixedNoiseOnlineSKIGP(GP):
         Kuu_Lmat = self.current_inducing_compression_matrix.to_dense()
 
         qmat_solve = self.current_qmatrix.solve(self.root_space_projection)
-        predictive_mean_cache = self.Kuu_response - Kuu_Lmat @ qmat_solve
+        # predictive_mean_cache = self.Kuu_response - Kuu_Lmat @ qmat_solve
+        predictive_mean_cache = self.Kuu_response - Kuu_Lmat.matmul(qmat_solve)
         prediction_cache["pred_mean"] = predictive_mean_cache
 
         if skip_posterior_variances.off():
@@ -392,13 +393,11 @@ class FixedNoiseOnlineSKIGP(GP):
 
         if fast_pred_var.on():
             qmat_inv_root = qmatrix.root_inv_decomposition()
-            # for to_linear_operator you have to evaluate the inverse root which is slow
+            # you have to evaluate the inverse root which is slow
             # otherwise, you can't backprop your way through it
-            inner_cache = RootLinearOperator(Kuu_Lmat.matmul(qmat_inv_root.root.evaluate()))
+            inner_cache = RootLinearOperator(Kuu_Lmat.matmul(qmat_inv_root.root.to_dense()))
         else:
-            inner_cache = Kuu_Lmat.matmul(
-                qmatrix.solve(Kuu_Lmat.transpose(-1, -2))
-            )
+            inner_cache = Kuu_Lmat.matmul(qmatrix.solve(Kuu_Lmat.transpose(-1, -2)))
 
         predictive_covar_cache = Kuu - inner_cache
         return predictive_covar_cache
@@ -432,5 +431,4 @@ class FixedNoiseOnlineSKIGP(GP):
         if self._kernel_cache is not None:
             for key in self._kernel_cache:
                 self._kernel_cache[key] = self._kernel_cache[key].to(device)
-                
         return super().to(device)

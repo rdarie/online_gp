@@ -32,6 +32,7 @@ gpytorch_global_settings:
   max_cholesky_size: 2048
   cg_tolerance: 1e-2
   memory_efficient: True
+  fast_pred_var: True
   # fast_computations:
   #   covar_root_decomposition: False
   #   log_prob: False

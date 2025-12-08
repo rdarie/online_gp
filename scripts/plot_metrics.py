@@ -26,7 +26,7 @@ dir_list = [
     ##
     # base_dir_2 / r"wiski_gp_regression-neuromosaics_nhp-0.0.16\trial_0\2025-11-19_15-47-15",
     # base_dir_2 / r"exact_gp_regression-neuromosaics_nhp-0.0.16\trial_0\2025-11-19_16-25-14",
-    base_dir_2 / r"wiski_gp_regression-NHP_NP-0.0.16\trial_0\2025-11-20_13-54-13",
+    base_dir_2 / r"wiski_gp_regression-NHP_NP-0.0.17\trial_0\2025-11-20_17-34-53",
 ]
 
 ls_col = 'online_gp.covar_module.base_kernel.base_kernel.raw_lengthscale'
@@ -63,12 +63,11 @@ for results_dir in dir_list:
     if ls_col in data.columns:
         ls = pd.DataFrame(
             data[ls_col].apply(lambda x: eval(x)[0]).to_list(),
-            columns=['lengthscale00', 'lengthscale01']
         )
-
+        ls.columns = [f"length_scale_{xx:0>2d}" for xx in range(ls.shape[1])]
         fig, ax = plt.subplots()
-        ax.plot(data['step'], ls['lengthscale00'], label='Online lengthscale 00')
-        ax.plot(data['step'], ls['lengthscale01'], label='Online lengthscale 01')
+        for xx in range(ls.shape[1]):
+            ax.plot(data['step'], ls[f"length_scale_{xx:0>2d}"], label=f'Online lengthscale {xx:0>2d}')
         ax.set_title(f"{results_dir.relative_to(results_dir.parents[2])}")
         ax.legend(loc='upper right')
         ax.set_xlabel('Step')
