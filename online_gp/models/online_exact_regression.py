@@ -87,9 +87,10 @@ class OnlineExactRegression(torch.nn.Module):
             if test_dataset is not None:
                 test_x, test_y = test_dataset[:]
                 rmse, nll = self.evaluate(test_x, test_y)
-            records.append({'train_loss': loss.item(), 'test_rmse': rmse,
-                            'test_nll': nll, 'noise': self.gp.likelihood.noise.mean().item(),
-                            'epoch': epoch + 1})
+            records.append({
+                'train_loss': loss.item(), 'test_rmse': rmse,
+                'test_nll': nll, 'noise': self.gp.likelihood.noise.mean().item(),
+                'epoch': epoch + 1})
 
         with torch.no_grad():
             self._refresh_features(inputs)
