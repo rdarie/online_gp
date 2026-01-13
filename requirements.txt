@@ -10,8 +10,7 @@ s3fs
 tabulate
 hydra-core>=1.0
 xlrd
-torch @ https://download.pytorch.org/whl/cu130/torch-2.9.0%2Bcu130-cp310-cp310-win_amd64.whl#sha256=ec07f6494f5c9925bd2e3d76d05a7d50464ddb6295998084073469f50f9e80ef
-# gpytorch~=1.7.0
+torch
 gpytorch
 linear_operator
 botorch
