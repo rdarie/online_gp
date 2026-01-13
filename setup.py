@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 import sys
 
@@ -20,9 +20,9 @@ setup(
     author_email='',
     url='',
     license='MPL-2.0',
-    packages=['online_gp'],
-    install_requires=[],
+    packages=find_packages(),
     include_package_data=True,
+    install_requires=[],
     classifiers=[
         'Development Status :: 0',
         'Intended Audience :: Science/Research',

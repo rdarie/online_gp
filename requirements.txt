@@ -16,5 +16,5 @@ linear_operator
 botorch
 jupyter
 probeinterface
-# upcycle
+upcycle
 # faiss-gpu
